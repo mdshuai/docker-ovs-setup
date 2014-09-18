@@ -1,0 +1,70 @@
+# Create a vm1
+virt-builder fedora-20 --size 8G --format qcow2 --root-password file:/tmp/rootpw -o fnet1.qcow2
+
+# Import the package into virt-manager and boot the vm
+yum update -y
+reboot
+
+# Install the packages required
+yum install openvswitch bridge-utils
+
+# Add a linux bridge
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-lbr0
+DEVICE=lbr0
+ONBOOT=yes
+TYPE=Bridge
+BOOTPROTO=static
+IPADDR=10.244.2.1
+NETMASK=255.255.255.0
+STP=yes
+EOF
+
+# Add a ovs switch
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-obr0
+DEVICE=obr0
+ONBOOT=yes
+DEVICETYPE=ovs
+TYPE=OVSBridge
+BOOTPROTO=static
+HOTPLUG=no
+EOF
+
+service network restart
+ip link set dev lbr0 up
+ovs-vsctl set Bridge obr0 stp_enable=true
+
+# Add masquerade rule so that the containers can reach the internet
+iptables -t nat -A POSTROUTING -s 10.244.0.0/16 ! -d 10.244.0.0/16 -j MASQUERADE
+iptables-save >& /etc/sysconfig/iptables
+
+# Install docker and modify its service file to use our custom linux bridge
+yum install docker-io
+sed -ie "s/ExecStart=\/usr\/bin\/docker -d/ExecStart=\/usr\/bin\/docker -d -b=lbr0 --iptables=false/g" /usr/lib/systemd/system/docker.service
+systemctl daemon-reload
+systemctl restart docker.service
+
+# Create a vxlan tunnel to the other vm
+ovs-vsctl add-port obr0 vtep0 -- set interface vtep0 type=vxlan option:remote_ip=192.168.122.26 option:key=flow ofport_request=10
+
+# Start two containers
+# They should be able to ping each other
+docker run -it busybox /bin/sh
+
+
+# Move the veth pairs from linux bridge to ovs
+# After moving them to ovs ping should work
+brctl show
+brctl delif lbr0 veth1234
+ovs-vsctl add-port obr0 veth1234
+ovs-vsctl show
+
+# Add the flows to the ovs switches
+ovs-ofctl add-flows obr0 vm1_flows.txt
+ovs-ofctl dump-flows obr0
+
+# To remove flows 
+ovs-ofctl del-flows obr0 < vm1_flows.txt
+
+# To add the default flow
+ovs-ofctl add-flow obr0 table=0,priority=0,actions=NORMAL
+ovs-ofctl add-flow obr0 actions=NORMAL
