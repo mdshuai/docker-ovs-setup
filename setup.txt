@@ -63,7 +63,7 @@ ovs-vsctl show
 
 # Add the flows to the ovs switches
 ovs-ofctl add-flows obr0 vm1_flows.txt
-ovs-ofctl dump-flows obr0
+ovs-ofctl -O OpenFlow13 dump-flows obr0
 
 # To remove flows 
 ovs-ofctl del-flows obr0 < vm1_flows.txt
@@ -71,3 +71,49 @@ ovs-ofctl del-flows obr0 < vm1_flows.txt
 # To add the default flow
 ovs-ofctl add-flow obr0 table=0,priority=0,actions=NORMAL
 ovs-ofctl add-flow obr0 actions=NORMAL
+
+
+
+ovs-vsctl show
+
+# Add the flows to the ovs switches
+ovs-ofctl add-flows obr0 vm1_flows.txt
+ovs-ofctl -O OpenFlow13 dump-flows obr0
+
+# To remove flows 
+ovs-ofctl del-flows obr0 < vm1_flows.txt
+
+# To add the default flow
+ovs-ofctl add-flow obr0 table=0,priority=0,actions=NORMAL
+ovs-ofctl add-flow obr0 actions=NORMAL
+
+
+
+
+
+# Move the veth pairs from linux bridge to ovs
+# After moving them to ovs ping should work
+brctl show
+brctl delif lbr0 veth1234
+ovs-vsctl add-port obr0 veth1234
+ovs-vsctl show
+
+# Add the flows to the ovs switches
+ovs-ofctl add-flows obr0 vm1_flows.txt
+ovs-ofctl -O OpenFlow13 dump-flows obr0
+
+# To remove flows 
+ovs-ofctl del-flows obr0 < vm1_flows.txt
+
+# To add the default flow
+ovs-ofctl add-flow obr0 table=0,priority=0,actions=NORMAL
+ovs-ofctl add-flow obr0 actions=NORMAL
+
+ovs-vsctl add-port br-tun vxlan1 -- set Interface vxlan1 type=vxlan options:remote_ip=flow options:key=flow options:dst_port=5000
+
+OVS provides a mechanism to create Openflow flows without having to have external Openflow controller.  'ovs-ofctl' is the machanism provided by OVS to do this.
+
+Following command can be used to create the
+ovs-ofctl add-flow br-tun "in_port=LOCAL actions=set_tunnel:1,set_field:172.16.2.3->tun_dst,output:1"  (OR)
+ovs-ofctl add-flow br-tun "in_port=LOCAL actions=set_field:172.16.2.3->tun_dst, set_field:1->tun_id, output:1
+"set_tunnel" is used to specify the VNI.  "set_field" to specify the tunnel destination.
