@@ -10,6 +10,8 @@ ovs-vsctl add-port br0 vxlan0 -- set Interface vxlan0 type=vxlan options:remote_
 ip link add vlinuxbr type veth peer name vovsbr
 ip link set vlinuxbr up
 ip link set vovsbr up
+ip link set vlinuxbr txqueuelen 0
+ip link set vovsbr txqueuelen 0
 
 ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=9
 
@@ -23,7 +25,7 @@ NETMASK=255.255.255.0
 STP=yes
 EOF
 
-# Restart network
+service network restart
 
 brctl addif lbr0 vlinuxbr
 
