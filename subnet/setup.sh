@@ -15,7 +15,7 @@ ip link set vovsbr txqueuelen 0
 
 ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=9
 
-cat <<EOF > /etc/systconfig/network-scripts/ifcfg-lbr0
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-lbr0
 DEVICE=lbr0
 ONBOOT=yes
 TYPE=Bridge
