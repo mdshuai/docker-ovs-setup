@@ -33,6 +33,9 @@ EOF
 
 service network restart
 
+# Sometimes network restart still doesn't bring the bridge up
+ip link set lbr0 up
+
 brctl addif lbr0 vlinuxbr
 
 //ip route del 10.244.3.0/24 dev lbr0  proto kernel  scope link  src 10.244.3.1
