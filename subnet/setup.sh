@@ -5,7 +5,7 @@ base_network=$3 //10.244.0.0/16
 
 ovs-vsctl del-br br0 || true
 ovs-vsctl add-br br0 -- set Bridge br0 fail-mode=secure
-ovs-vsctl set bridge br0 stp_enable=true
+# ovs-vsctl set bridge br0 stp_enable=true
 ovs-vsctl set bridge br0 protocols=OpenFlow13
 
 ovs-vsctl del-port br0 vxlan0 || true
@@ -35,7 +35,7 @@ TYPE=Bridge
 BOOTPROTO=static
 IPADDR=${bridge_ip}
 NETMASK=${bridge_mask}
-STP=yes
+STP=no
 EOF
 
 service network restart
