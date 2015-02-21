@@ -53,4 +53,9 @@ nsenter -n -t $pid -- $add_default_cmd
 
 shift
 docker_args=$@
-docker run --net=container:${net_container} $docker_args
+cidfile=/tmp/osdn-cid_$RANDOM
+docker run --cidfile $cidfile --net=container:${net_container} $docker_args
+cid=$(cat $cidfile)
+docker wait $cid || true
+docker rm -f $cid || true
+docker rm -f $net_container
